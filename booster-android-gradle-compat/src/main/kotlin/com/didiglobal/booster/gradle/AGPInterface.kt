@@ -1,30 +1,25 @@
 package com.didiglobal.booster.gradle
 
-import com.android.build.api.transform.Context
-import com.android.build.api.transform.QualifiedContent
-import com.android.build.api.transform.TransformInvocation
-import com.android.build.gradle.AppExtension
+import com.android.build.api.artifact.Artifact
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.AndroidVersion
+import com.android.build.api.variant.Variant
 import com.android.build.gradle.BaseExtension
-import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.api.BaseVariant
-import com.android.build.gradle.internal.pipeline.TransformManager
-import com.android.build.gradle.internal.pipeline.TransformTask
 import com.android.build.gradle.internal.publishing.AndroidArtifacts
-import com.android.build.gradle.internal.scope.GlobalScope
-import com.android.build.gradle.internal.scope.VariantScope
 import com.android.build.gradle.internal.variant.BaseVariantData
-import com.android.builder.core.VariantType
-import com.android.builder.model.ApiVersion
 import com.android.builder.model.Version
 import com.android.repository.Revision
-import com.android.sdklib.AndroidVersion
 import com.android.sdklib.BuildToolInfo
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.artifacts.ArtifactCollection
+import org.gradle.api.artifacts.component.ComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.file.FileCollection
+import org.gradle.api.file.FileSystemLocation
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
-import java.io.File
 import java.util.ServiceLoader
 
 interface AGPInterface {
@@ -32,20 +27,14 @@ interface AGPInterface {
     val revision: Revision
         get() = REVISION
 
-    val scopeFullWithFeatures: MutableSet<in QualifiedContent.Scope>
-        get() = TransformManager.SCOPE_FULL_PROJECT
-
-    val scopeFullLibraryWithFeatures: MutableSet<in QualifiedContent.Scope>
-        get() = TransformManager.PROJECT_ONLY
-
-    val BaseVariant.project: Project
+    val Variant.project: Project
 
     @Deprecated(
             message = "Use javaCompilerTaskProvider instead",
             replaceWith = ReplaceWith(expression = "javaCompilerTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.javaCompilerTask: Task
+    val Variant.javaCompilerTask: Task
         get() = javaCompilerTaskProvider.get()
 
     @Deprecated(
@@ -53,7 +42,7 @@ interface AGPInterface {
             replaceWith = ReplaceWith(expression = "preBuildTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.preBuildTask: Task
+    val Variant.preBuildTask: Task
         get() = preBuildTaskProvider.get()
 
     @Deprecated(
@@ -61,7 +50,7 @@ interface AGPInterface {
             replaceWith = ReplaceWith(expression = "preBuildTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.assembleTask: Task
+    val Variant.assembleTask: Task
         get() = assembleTaskProvider.get()
 
     @Deprecated(
@@ -69,7 +58,7 @@ interface AGPInterface {
             replaceWith = ReplaceWith(expression = "mergeAssetsTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.mergeAssetsTask: Task
+    val Variant.mergeAssetsTask: Task
         get() = mergeAssetsTaskProvider.get()
 
     @Deprecated(
@@ -77,136 +66,138 @@ interface AGPInterface {
             replaceWith = ReplaceWith(expression = "mergeResourcesTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.mergeResourcesTask: Task
+    val Variant.mergeResourcesTask: Task
         get() = mergeResourcesTaskProvider.get()
+
 
     @Deprecated(
             message = "Use processJavaResourcesTaskProvider instead",
             replaceWith = ReplaceWith(expression = "processJavaResourcesTaskProvider"),
             level = DeprecationLevel.WARNING
     )
-    val BaseVariant.processJavaResourcesTask: Task
+    val Variant.processJavaResourcesTask: Task
         get() = processJavaResourcesTaskProvider.get()
 
-    fun BaseVariant.getTaskName(prefix: String): String
+    fun Variant.getTaskName(prefix: String): String
 
-    fun BaseVariant.getTaskName(prefix: String, suffix: String): String
+    fun Variant.getTaskName(prefix: String, suffix: String): String
 
-    val BaseVariant.variantData: BaseVariantData
+    val Variant.variantData: BaseVariantData
 
-    val BaseVariant.variantScope: VariantScope
+    @Deprecated(
+            message = "Use Variant.namespace instead",
+            replaceWith = ReplaceWith(expression = "variant.namespace"),
+    )
+    val Variant.originalApplicationId: String
 
-    val BaseVariant.globalScope: GlobalScope
+    val Variant.hasDynamicFeature: Boolean
 
-    val BaseVariant.originalApplicationId: String
+    @Deprecated(message = "Deprecated, don't use it")
+    val Variant.rawAndroidResources: FileCollection
 
-    val BaseVariant.hasDynamicFeature: Boolean
+    val Variant.sourceSetMap: FileCollection
 
-    val BaseVariant.rawAndroidResources: Collection<File>
+    val Variant.localAndroidResources: FileCollection
 
-    val BaseVariant.javaCompilerTaskProvider: TaskProvider<out Task>
+    val Variant.javaCompilerTaskProvider: TaskProvider<out Task>
 
-    val BaseVariant.preBuildTaskProvider: TaskProvider<out Task>
+    val Variant.preBuildTaskProvider: TaskProvider<out Task>
 
-    val BaseVariant.assembleTaskProvider: TaskProvider<out Task>
+    val Variant.assembleTaskProvider: TaskProvider<out Task>
 
-    val BaseVariant.mergeAssetsTaskProvider: TaskProvider<out Task>
+    val Variant.mergeAssetsTaskProvider: TaskProvider<out Task>
 
-    val BaseVariant.mergeResourcesTaskProvider: TaskProvider<out Task>
+    val Variant.mergeResourcesTaskProvider: TaskProvider<out Task>
 
-    val BaseVariant.processJavaResourcesTaskProvider: TaskProvider<out Task>
+    val Variant.mergeNativeLibsTaskProvider: TaskProvider<out Task>
 
-    fun BaseVariant.getArtifactCollection(
+    val Variant.processJavaResourcesTaskProvider: TaskProvider<out Task>
+
+    fun <T : FileSystemLocation> Variant.getSingleArtifact(
+            type: Artifact.Single<T>
+    ): Provider<T>
+
+    fun Variant.getArtifactCollection(
             configType: AndroidArtifacts.ConsumedConfigType,
             scope: AndroidArtifacts.ArtifactScope,
             artifactType: AndroidArtifacts.ArtifactType
     ): ArtifactCollection
 
-    fun BaseVariant.getArtifactFileCollection(
+    fun Variant.getArtifactFileCollection(
             configType: AndroidArtifacts.ConsumedConfigType,
             scope: AndroidArtifacts.ArtifactScope,
             artifactType: AndroidArtifacts.ArtifactType
     ): FileCollection
 
-    val BaseVariant.allArtifacts: Map<String, Collection<File>>
+    val Variant.allArtifacts: Map<String, FileCollection>
 
-    val BaseVariant.minSdkVersion: AndroidVersion
+    val Variant.targetVersion: AndroidVersion
 
-    val BaseVariant.targetSdkVersion: ApiVersion
+    val Variant.isApplication: Boolean
 
-    val BaseVariant.variantType: VariantType
+    val Variant.isLibrary: Boolean
 
-    val BaseVariant.aar: Collection<File>
+    val Variant.isDynamicFeature: Boolean
 
-    val BaseVariant.apk: Collection<File>
+    val Variant.aar: FileCollection
 
-    val BaseVariant.mergedManifests: Collection<File>
+    val Variant.apk: FileCollection
 
-    val BaseVariant.mergedRes: Collection<File>
+    val Variant.mergedManifests: FileCollection
 
-    val BaseVariant.mergedAssets: Collection<File>
+    val Variant.mergedRes: FileCollection
 
-    val BaseVariant.processedRes: Collection<File>
+    val Variant.mergedAssets: FileCollection
 
-    val BaseVariant.symbolList: Collection<File>
+    val Variant.mergedNativeLibs: FileCollection
 
-    val BaseVariant.symbolListWithPackageName: Collection<File>
+    val Variant.processedRes: FileCollection
 
-    val BaseVariant.dataBindingDependencyArtifacts: Collection<File>
+    val Variant.symbolList: FileCollection
 
-    val BaseVariant.allClasses: Collection<File>
+    val Variant.symbolListWithPackageName: FileCollection
 
-    val BaseVariant.buildTools: BuildToolInfo
+    val Variant.dataBindingDependencyArtifacts: FileCollection
 
-    val BaseVariant.isPrecompileDependenciesResourcesEnabled: Boolean
+    val Variant.allClasses: FileCollection
 
-    val Context.task: TransformTask
+    val Variant.buildTools: BuildToolInfo
 
-    @Deprecated(
-            message = "Use isAapt2Enabled instead",
-            replaceWith = ReplaceWith(
-                    expression = "isAapt2Enabled"
-            )
-    )
-    val Project.aapt2Enabled: Boolean
+    val Variant.isPrecompileDependenciesResourcesEnabled: Boolean
 
-    val Project.isAapt2Enabled: Boolean
-        get() = aapt2Enabled
+    val Variant.isDebuggable: Boolean
 
-    val TransformInvocation.variant: BaseVariant
-        get() = project.getAndroid<BaseExtension>().let { android ->
-            this.context.variantName.let { variant ->
-                when (android) {
-                    is AppExtension -> when {
-                        variant.endsWith("AndroidTest") -> android.testVariants.single { it.name == variant }
-                        variant.endsWith("UnitTest") -> android.unitTestVariants.single { it.name == variant }
-                        else -> android.applicationVariants.single { it.name == variant }
-                    }
-                    is LibraryExtension -> android.libraryVariants.single { it.name == variant }
-                    else -> TODO("variant not found")
-                }
-            }
-        }
-
-    val TransformInvocation.project: Project
-        get() = context.task.project
-
-    val TransformInvocation.bootClasspath: Collection<File>
-        get() = project.getAndroid<BaseExtension>().bootClasspath
-
-    val TransformInvocation.isDataBindingEnabled: Boolean
-        get() = project.getAndroid<BaseExtension>().dataBinding.isEnabled
+    fun Variant.getDependencies(
+            transitive: Boolean = true,
+            filter: (ComponentIdentifier) -> Boolean = { true }
+    ): Collection<ResolvedArtifactResult>
 
 }
 
+@Deprecated("Deprecated", ReplaceWith("getAndroidComponent"))
 inline fun <reified T : BaseExtension> Project.getAndroid(): T = extensions.getByName("android") as T
+
+@Deprecated("Deprecated", ReplaceWith("getAndroidComponent"))
+inline fun <reified T : BaseExtension> Project.getAndroidOrNull(): T? = try {
+    extensions.getByName("android") as? T
+} catch (e: UnknownDomainObjectException) {
+    null
+}
+
+inline fun <reified T : AndroidComponentsExtension<*, *, *>> Project.getAndroidComponents() = extensions.getByType(AndroidComponentsExtension::class.java) as T
+
+inline fun <reified T : AndroidComponentsExtension<*, *, *>> Project.getAndroidComponentsOrNull() = try {
+    getAndroidComponents<T>()
+} catch (e: UnknownDomainObjectException) {
+    null
+}
 
 private val REVISION: Revision by lazy {
     Revision.parseRevision(Version.ANDROID_GRADLE_PLUGIN_VERSION)
 }
 
 private val FACTORIES: List<AGPInterfaceFactory> by lazy {
-    ServiceLoader.load(AGPInterfaceFactory::class.java)
+    ServiceLoader.load(AGPInterfaceFactory::class.java, AGPInterface::class.java.classLoader)
             .sortedByDescending(AGPInterfaceFactory::revision)
             .toList()
 }

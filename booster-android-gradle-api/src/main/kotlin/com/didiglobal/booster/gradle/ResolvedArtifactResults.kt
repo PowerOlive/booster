@@ -1,6 +1,6 @@
 package com.didiglobal.booster.gradle
 
-import com.android.build.gradle.api.BaseVariant
+import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactScope.ALL
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType.AAR
 import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType.JAR
@@ -18,7 +18,12 @@ import java.io.PrintWriter
  * @author johnsonlee
  */
 @Suppress("UnstableApiUsage")
-class ResolvedArtifactResults(private val variant: BaseVariant) : Collection<ResolvedArtifactResult> {
+@Deprecated(
+        message = "Use AGPInterface instead",
+        replaceWith = ReplaceWith("Variant.getDependencies(Boolean, (ComponentIdentifier) -> Boolean)"),
+        level = DeprecationLevel.WARNING
+)
+class ResolvedArtifactResults(private val variant: Variant) : Collection<ResolvedArtifactResult> {
 
     private val results = listOf(AAR, JAR)
             .asSequence()
@@ -29,9 +34,9 @@ class ResolvedArtifactResults(private val variant: BaseVariant) : Collection<Res
             .sortedBy { it.id.componentIdentifier.displayName }
             .toList()
 
-    private val maxNameWidth = map { it.id.componentIdentifier.displayName.length }.max() ?: 0
+    private val maxNameWidth = map { it.id.componentIdentifier.displayName.length }.maxOrNull() ?: 0
 
-    private val maxFileWidth = map { it.file.path.length }.max() ?: 0
+    private val maxFileWidth = map { it.file.path.length }.maxOrNull() ?: 0
 
     override val size: Int
         get() = results.count()
@@ -74,9 +79,9 @@ class ResolvedArtifactResults(private val variant: BaseVariant) : Collection<Res
     /**
      * Default output location: $buildDir/intermediates/dependencies/${variantDirName}/dependencies.txt
      */
-    private fun makeDependenciesOutput() = AGP.run { variant.globalScope }.intermediatesDir.file(
+    private fun makeDependenciesOutput() = File(variant.project.buildDir, "intermediates").file(
             "dependencies",
-            variant.dirName.separatorsToSystem(),
+            variant.name,
             "dependencies.txt"
     )
 

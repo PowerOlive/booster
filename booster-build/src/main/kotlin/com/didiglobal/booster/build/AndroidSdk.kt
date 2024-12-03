@@ -28,9 +28,9 @@ class AndroidSdk {
 
         fun findPlatform(): Int = File(location, "platforms").listFiles()?.filter {
             it.name.startsWith("android-") && File(it, "android.jar").exists()
-        }?.map {
-            it.name.substringAfter("android-")
-        }?.max()?.toInt() ?: throw RuntimeException("No platform found")
+        }?.mapNotNull {
+            it.name.substringAfter("android-").toIntOrNull()
+        }?.maxOrNull()?.toInt() ?: throw RuntimeException("No platform found")
 
         /**
          * Returns the Android SDK location, the search order:

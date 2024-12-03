@@ -12,6 +12,7 @@ import java.io.DataOutputStream
 import java.io.File
 import java.lang.management.ManagementFactory
 import java.lang.management.ThreadMXBean
+import java.time.Duration
 import java.util.ServiceLoader
 
 /**
@@ -26,7 +27,7 @@ class JavassistTransformer : Transformer {
 
     private val threadMxBean = ManagementFactory.getThreadMXBean()
 
-    private val durations = mutableMapOf<ClassTransformer, Long>()
+    private val durations = mutableMapOf<ClassTransformer, Duration>()
 
     private val classLoader: ClassLoader
 
@@ -44,9 +45,12 @@ class JavassistTransformer : Transformer {
     }
 
     override fun onPreTransform(context: TransformContext) {
-        this.pool.appendClassPath(context.bootClasspath.joinToString(File.pathSeparator) { it.canonicalPath })
-        this.pool.appendClassPath(context.compileClasspath.joinToString(File.pathSeparator) { it.canonicalPath })
-
+        context.bootClasspath.forEach { file ->
+            this.pool.appendClassPath(file.canonicalPath)
+        }
+        context.compileClasspath.forEach { file ->
+            this.pool.appendClassPath(file.canonicalPath)
+        }
         this.transformers.forEach { transformer ->
             this.threadMxBean.sumCpuTime(transformer) {
                 transformer.onPreTransform(context)
@@ -87,9 +91,9 @@ class JavassistTransformer : Transformer {
 
         val w1 = this.durations.keys.map {
             it.javaClass.name.length
-        }.max() ?: 20
+        }.maxOrNull() ?: 20
         this.durations.forEach { (transformer, ns) ->
-            println("${transformer.javaClass.name.padEnd(w1 + 1)}: ${ns / 1000000} ms")
+            println("${transformer.javaClass.name.padEnd(w1 + 1)}: ${ns.toMillis()} ms")
         }
     }
 
@@ -97,7 +101,9 @@ class JavassistTransformer : Transformer {
         val ct0 = this.currentThreadCpuTime
         val result = action()
         val ct1 = this.currentThreadCpuTime
-        durations[transformer] = durations.getOrDefault(transformer, 0) + (ct1 - ct0)
+        durations[transformer] = durations.getOrPut(transformer) {
+            Duration.ofNanos(0)
+        } + Duration.ofNanos(ct1 - ct0)
         return result
     }
 

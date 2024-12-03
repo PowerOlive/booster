@@ -4,13 +4,13 @@ import com.didiglobal.booster.kotlinx.isEmpty
 import com.didiglobal.booster.kotlinx.red
 import java.io.Closeable
 import java.io.File
+import java.net.URL
 
 /**
  * @author johnsonlee
  */
-interface ClassSet<ClassFile, ClassParser : ClassFileParser<ClassFile>> : Set<ClassFile>, Closeable {
-
-    val parser: ClassParser
+interface ClassSet<ClassFile, ClassParser> : Set<ClassFile>, ClassFileParser<ClassFile>, Closeable
+        where ClassParser : ClassFileParser<ClassFile> {
 
     operator fun get(name: String): ClassFile?
 
@@ -18,27 +18,23 @@ interface ClassSet<ClassFile, ClassParser : ClassFileParser<ClassFile>> : Set<Cl
 
     operator fun contains(name: String): Boolean
 
-    override fun contains(element: ClassFile) = contains(parser.getClassName(element))
-
-    override fun containsAll(elements: Collection<ClassFile>) = elements.all {
-        contains(parser.getClassName(it))
-    }
+    val classpath: List<URL>
 
     fun load(): ClassSet<ClassFile, ClassParser>
 
     companion object {
 
-        private val ARCHIVES = Regex("^(zip)|(jar)$", RegexOption.IGNORE_CASE)
+        private val ARCHIVES = Regex("^(aar)|(zip)|(jar)$", RegexOption.IGNORE_CASE)
 
         fun <ClassFile, ClassParser : ClassFileParser<ClassFile>> from(
                 file: File,
                 parser: ClassParser
         ): ClassSet<ClassFile, ClassParser> = when {
-            file.isDirectory -> DirectoryClassSet<ClassFile, ClassParser>(file, parser)
-            file.extension matches ARCHIVES -> ArchivedClassSet<ClassFile, ClassParser>(file, parser)
+            file.isDirectory -> DirectoryClassSet(file, parser)
+            file.extension matches ARCHIVES -> ArchivedClassSet(file, parser)
             else -> {
                 System.err.println(red("unsupported file: $file"))
-                EmptyClassSet(parser)
+                EmptyClassSet()
             }
         }
 

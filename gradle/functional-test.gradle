@@ -7,7 +7,7 @@ sourceSets {
             srcDirs += ['src/functionalTest/kotlin', 'src/functionalTest/java']
         }
         resources.srcDir file('src/functionalTest/resources')
-        compileClasspath += sourceSets.main.output + configurations.testRuntime
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
         runtimeClasspath += output + compileClasspath
     }
 }
@@ -26,10 +26,16 @@ task functionalTest(type: Test) {
     testLogging {
         events "passed", "skipped", "failed", "standardError"
     }
+    systemProperty('gradle.args', 'buildEnv dependencies assemble -S')
+    systemProperty 'android.minsdk.version', 18
 }
 
 check.dependsOn functionalTest
 
 compileFunctionalTestKotlin {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+        apiVersion = "1.5"
+        freeCompilerArgs = ["-Xno-optimized-callable-references"]
+    }
 }

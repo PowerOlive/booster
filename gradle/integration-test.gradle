@@ -7,7 +7,7 @@ sourceSets {
             srcDirs += ['src/integrationTest/kotlin', 'src/integrationTest/java']
         }
         resources.srcDir file('src/integrationTest/resources')
-        compileClasspath += sourceSets.main.output + configurations.testRuntime
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
         runtimeClasspath += output + compileClasspath
     }
 }
@@ -24,12 +24,22 @@ task integrationTest(type: Test) {
     classpath = sourceSets.integrationTest.runtimeClasspath
     mustRunAfter test
     testLogging {
-        events "passed", "skipped", "failed", "standardError"
+        events "passed", "skipped", "failed", "standardOut", "standardError"
     }
+    systemProperty('gradle.args', 'buildEnv dependencies assemble -S')
+    systemProperty 'android.minsdk.version', 18
 }
 
 check.dependsOn integrationTest
 
 compileIntegrationTestKotlin {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17
+        apiVersion = "1.5"
+        freeCompilerArgs = ["-Xno-optimized-callable-references"]
+    }
+}
+
+tasks.withType(ProcessResources).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

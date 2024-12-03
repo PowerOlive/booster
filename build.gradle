@@ -7,13 +7,11 @@ buildscript {
         mavenLocal()
         google()
         mavenCentral()
-        jcenter()
-        maven { url 'https://plugins.gradle.org/m2/' }
+        gradlePluginPortal()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.21.2"
-        classpath "de.marcphilipp.gradle:nexus-publish-plugin:0.4.0"
+        classpath "io.github.gradle-nexus:publish-plugin:1.1.0"
         classpath "io.johnsonlee.buildprops:buildprops-gradle-plugin:1.1.0"
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.10.1"
     }
@@ -21,23 +19,36 @@ buildscript {
 
 def OSSRH_USERNAME = project.properties['OSSRH_USERNAME'] ?: System.getenv('OSSRH_USERNAME')
 def OSSRH_PASSWORD = project.properties['OSSRH_PASSWORD'] ?: System.getenv('OSSRH_PASSWORD')
+def OSSRH_STAGING_PROFILE_ID = project.properties['OSSRH_STAGING_PROFILE_ID'] ?: System.getenv('OSSRH_STAGING_PROFILE_ID')
 
-apply plugin: 'io.codearte.nexus-staging'
 apply plugin: 'org.jetbrains.dokka'
+apply plugin: 'io.github.gradle-nexus.publish-plugin'
 
 allprojects { project ->
     apply plugin: 'java'
-    apply plugin: 'maven'
-    apply plugin: 'de.marcphilipp.nexus-publish'
+    apply plugin: 'kotlin'
+    apply plugin: 'maven-publish'
 
     group = 'com.didiglobal.booster'
-    version = '4.0.0'
+    version = findProperty('version').with { it != DEFAULT_VERSION ? it : null } ?: '1.0.0-SNAPSHOT'
 
     repositories {
         mavenLocal()
         google()
         mavenCentral()
-        jcenter()
+    }
+
+    sourceSets {
+        main {
+            kotlin {
+                srcDirs += ['src/main/kotlin', 'src/main/java', 'build/generated/source/buildprops/main/java']
+            }
+        }
+        test {
+            kotlin {
+                srcDirs += ['src/main/kotlin', 'src/main/java', 'build/generated/source/buildprops/main/java']
+            }
+        }
     }
 
     javadoc {
@@ -45,12 +56,12 @@ allprojects { project ->
     }
 
     task packageJavadoc(type: Jar) {
-        classifier = 'javadoc'
+        archiveClassifier = 'javadoc'
         from javadoc
     }
 
     task packageSources(type: Jar) {
-        classifier = 'sources'
+        archiveClassifier = 'sources'
         from sourceSets.main.allSource
     }
 
@@ -64,15 +75,6 @@ allprojects { project ->
         }
     }
 
-    nexusPublishing {
-        repositories {
-            sonatype {
-                username = OSSRH_USERNAME
-                password = OSSRH_PASSWORD
-            }
-        }
-    }
-
     def configurePublication = { MavenPublication publication ->
         groupId = project.group
         artifactId = project.name
@@ -83,11 +85,11 @@ allprojects { project ->
         }
 
         artifact project.packageSources {
-            classifier "sources"
+            archiveClassifier.set("sources")
         }
 
         artifact project.packageJavadoc {
-            classifier "javadoc"
+            archiveClassifier.set("javadoc")
         }
 
         pom {
@@ -133,6 +135,15 @@ allprojects { project ->
         if (!project.hasProperty("signing.skip")) {
             apply plugin: 'signing'
 
+            def signingTasks = project.tasks.withType(Sign)
+            project.tasks.withType(PublishToMavenLocal) {
+                dependsOn signingTasks
+            }
+
+            project.tasks.withType(PublishToMavenRepository) {
+                dependsOn signingTasks
+            }
+
             project.signing {
                 sign publication
             }
@@ -160,59 +171,22 @@ dependencies {
     implementation project(':booster-gradle-plugin')
 }
 
-nexusStaging {
+nexusPublishing {
     packageGroup = "com.didiglobal"
-    username = OSSRH_USERNAME
-    password = OSSRH_PASSWORD
-    numberOfRetries = 50
-    delayBetweenRetriesInMillis = 3000
-}
 
-task reference(type: org.jetbrains.dokka.gradle.DokkaTask, group: 'Documentation') {
-    subProjects = [
-            'booster-aapt2',
-            'booster-android-gradle-api',
-            'booster-android-gradle-compat',
-            'booster-annotations',
-            'booster-api',
-            'booster-build',
-            'booster-cha',
-            'booster-command',
-            'booster-kotlinx',
-            'booster-task-compression',
-            'booster-task-spi',
-            'booster-transform-asm',
-            'booster-transform-javassist',
-            'booster-transform-spi',
-            'booster-transform-util'
-    ]
-    outputFormat = 'html'
-    outputDirectory = "${buildDir}/reference"
-    configuration {
-        perPackageOption {
-            prefix = 'com.didiglobal.booster.aapt2.legacy'
-            suppress = true
+    repositories {
+        sonatype {
+            username = OSSRH_USERNAME
+            password = OSSRH_PASSWORD
+            stagingProfileId = OSSRH_STAGING_PROFILE_ID
         }
-        perPackageOption {
-            prefix = 'com.didiglobal.booster.build.BoosterServiceLoader'
-            suppress = true
-        }
-        includes = [
-                'booster-aapt2/packages-zh-CN.md',
-                'booster-android-gradle-api/packages-zh-CN.md',
-                'booster-annotations/packages-zh-CN.md',
-                'booster-api/packages-zh-CN.md',
-                'booster-build/packages-zh-CN.md',
-                'booster-cha/packages-zh-CN.md',
-                'booster-command/packages-zh-CN.md',
-                'booster-kotlinx/packages-zh-CN.md',
-                'booster-task-compression/packages-zh-CN.md',
-                'booster-task-spi/packages-zh-CN.md',
-                'booster-transform-asm/packages-zh-CN.md',
-                'booster-transform-javassist/packages-zh-CN.md',
-                'booster-transform-spi/packages-zh-CN.md',
-                'booster-transform-util/packages-zh-CN.md',
-        ]
-        jdkVersion = 8
+    }
+
+    clientTimeout = Duration.ofSeconds(300)
+    connectTimeout = Duration.ofSeconds(60)
+
+    transitionCheckOptions {
+        maxRetries.set(3000)
+        delayBetween.set(Duration.ofMillis(3000))
     }
 }

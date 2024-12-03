@@ -13,6 +13,7 @@ import java.io.File
 import java.io.InputStream
 import java.lang.management.ManagementFactory
 import java.lang.management.ThreadMXBean
+import java.time.Duration
 import java.util.ServiceLoader
 import java.util.jar.JarFile
 
@@ -26,7 +27,7 @@ class AsmTransformer : Transformer {
 
     private val threadMxBean = ManagementFactory.getThreadMXBean()
 
-    private val durations = mutableMapOf<ClassTransformer, Long>()
+    private val durations = mutableMapOf<ClassTransformer, Duration>()
 
     private val classLoader: ClassLoader
 
@@ -85,9 +86,9 @@ class AsmTransformer : Transformer {
 
         val w1 = this.durations.keys.map {
             it.javaClass.name.length
-        }.max() ?: 20
+        }.maxOrNull() ?: 20
         this.durations.forEach { (transformer, ns) ->
-            println("${transformer.javaClass.name.padEnd(w1 + 1)}: ${ns / 1000000} ms")
+            println("${transformer.javaClass.name.padEnd(w1 + 1)}: ${ns.toMillis()} ms")
         }
     }
 
@@ -95,7 +96,9 @@ class AsmTransformer : Transformer {
         val ct0 = this.currentThreadCpuTime
         val result = action()
         val ct1 = this.currentThreadCpuTime
-        durations[transformer] = durations.getOrDefault(transformer, 0) + (ct1 - ct0)
+        durations[transformer] = durations.getOrPut(transformer) {
+            Duration.ofNanos(0)
+        } + Duration.ofNanos(ct1 - ct0)
         return result
     }
 

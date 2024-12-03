@@ -1,3 +1,157 @@
+## v5.0.0
+
+- Support AGP 8.0, 8.1, 8.2
+- Deprecated module `booster-android-instrument-shared-preferences`
+- Deprecated module `booster-android-instrument-webview`
+- Deprecated module `booster-task-analyser`
+- Deprecated module `booster-task-check-snapshot`
+- Deprecated module `booster-task-compression-cwebp`
+- Deprecated module `booster-task-compression-pngquant`
+- Deprecated module `booster-task-compression-processed-res`
+- Deprecated module `booster-task-compression`
+- Deprecated module `booster-task-resource-deredundancy`
+- Deprecated module `booster-transform-br-inline`
+- Deprecated module `booster-transform-service-loader`
+- Deprecated module `booster-transform-shared-preferences`
+- Deprecated module `booster-transform-webview`
+
+## v4.16.3
+
+- Support AGP 7.4
+- Fix issue [#422](https://github.com/didi/booster/pull/422) end-of-stream caused by multiple collector
+
+## v4.14.2
+
+- Fix issue [#422](https://github.com/didi/booster/pull/422) end-of-stream caused by multiple collector
+
+## v4.14.1
+
+- Sync from 4.16.2
+- Exclude AGP 7.3 and Kotlin API version 1.5.0 upgrading
+
+## v4.16.2
+
+- Fix `Project.getJarTaskProviders(BaseVariant?)` with projects do not have `android` extension
+- Add extension `BaseVariant.localAndroidResources`
+- Fix `AndroidSdk.findPlatform()`: Ignore Android SDK extension
+
+## v4.16.1
+
+- Fix issue [#406](https://github.com/didi/booster/issues/406) : incremental build with jar removal
+- Fix issue [#407](https://github.com/didi/booster/issues/407) : Apple M1 chipset support for cwebp
+
+## v4.15.0
+
+- Fix issue [#381](https://github.com/didi/booster/issues/381)
+- Fix issue [#387](https://github.com/didi/booster/issues/387)
+- Upgrade Kotlin API version to 1.5.0
+- Support AGP 7.3
+- Fix integration tests
+
+- CHA improvement
+
+## v4.13.0
+
+- Fix incompatibility issue of `ShadowScheduledThreadPoolExecutor` on Android 5.1.1 and below
+- Fix issue [#364](https://github.com/didi/booster/issues/364) booster transform cannot be registered successfully
+- Fix issue [#368](https://github.com/didi/booster/issues/368) by removing JAR signature related files to prevent JAR signature verification
+- Fix issue [#370](https://github.com/didi/booster/issues/370) by improving the compatibility of AGP 7.2.0+
+- Improve [booster-aapt2](https://github.com/didi/booster/blob/v4.13.0/booster-aapt2) compatibility
+
+## v4.12.0
+
+- Enable class set cache for static analysis to reduce memory footprint
+- Support Gradle configuration cache [#248](https://github.com/didi/booster/issues/248)
+- Loading and initializing variant processor earlier
+
+## v4.11.0
+
+- Grouping tasks into group `booster`
+- Dependency acquisition enhancement
+- Fix transform timing issue
+- Add [booster-cha-asm](https://github.com/didi/booster/blob/v4.11.0/booster-cha-asm) to support ASM based CHA
+- Improvement for [booster-task-analyser](https://github.com/didi/booster/blob/v4.11.0/booster-task-analyser)
+- Load all classes of a composite class set before accessing
+- Fix bug of resolving project dependencies
+
+## v4.10.0
+
+- Improve ClassSet to avoid memory leaks
+- Improve ClassSet to support loading classes from AAR
+- Fix transform output conflicts
+- Add `execute(...)` for `Command`
+- Add class reference analysis for [booster-task-analyser](https://github.com/didi/booster/blob/v4.10.0/booster-task-analyser)
+- Splitting [booster-graph](https://github.com/didi/booster/blob/v4.10.0/booster-graph) into [booster-graph](https://github.com/didi/booster/blob/v4.10.0/booster-graph), [booster-graph-dot](https://github.com/didi/booster/blob/v4.10.0/booster-graph-dot) and [booster-graph-json](https://github.com/didi/booster/blob/v4.10.0/booster-graph-json)
+- AGP 7.1 & 7.2 compatibility support
+
+## v4.9.0
+
+- Fix [CVE-2020-15250] In JUnit4 from version 4.7 and before 4.13.1, the test rule TemporaryFolder contains a local information disclosure vulnerability
+- Fix variant artifacts acquiring
+- Fix integration tests
+- Refactoring [booster-graph](https://github.com/didi/booster/blob/v4.9.0/booster-graph) to support grouping and render options
+
+## v4.8.0
+
+- Fix issue [#311](https://github.com/didi/booster/issues/311)
+- Add api `mergeNativeLibsTaskProvider`
+- Add [booster-graph](https://github.com/didi/booster/blob/v4.8.0/booster-graph) to generate graph with `dot`
+- Using deferred task instead of creating task directly
+- Reverse the edge direction of the task graph
+
+## v4.7.0
+
+- Add `DotGraph.visualize()` for graph visualization
+- Add [booster-task-graph](https://github.com/didi/booster/blob/v4.7.0/booster-task-graph) for task graph visualization
+- Fix improper task dependencies
+- Fix issue [#304](https://github.com/didi/booster/issues/304): `ScheduledThreadPoolExecutor` transform bug
+
+## v4.6.0
+
+- Add extension property `BaseVariant.mergedNativeLibs: Collection<File>`
+- Add extension function `BaseVariant..getReport(String, String): File`
+- Fix Jacoco coverage report issue
+
+## v4.5.3
+
+- Fix `mergeResources` task
+
+## v4.5.2
+
+- Fix issue [#284](https://github.com/didi/booster/issues/284)
+
+## v4.5.1
+
+- Fix issue [#287](https://github.com/didi/booster/issues/287)
+
+## v4.5.0
+
+- Fix issue [#280](https://github.com/didi/booster/issues/280)
+
+## v4.4.0
+
+- Support force update inputs for incremental build
+
+## v4.3.0
+
+- Support running local unit test with transformer
+- Add collector API for multi-round transform
+
+## v4.2.0
+
+- Add Android stub APIs
+- Fix bug of the classpath of class pool
+- Add runtime instrumentation support
+
+## v4.1.0
+
+- Fix issue [#258](https://github.com/didi/booster/issues/258)
+- Fix bug when install in android-R machine: no compress arsc file.
+
+## v4.0.0
+
+- Support AGP 7.0, no longer supported AGP 3.2 and lower versions
+
 ## v3.5.0
 
 - Fix `booster-transform-r-inline` 支持 `constraintlayout` `v2.0`
